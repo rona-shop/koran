@@ -207,7 +207,7 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
   </div>
 </header>
 
-<div id="app">
+<div id="app" class="sb-closed">
   <aside id="sidebar">
     <button id="sbClose">✕ إغلاق القائمة</button>
     <div class="stabs">
@@ -279,7 +279,7 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
 "use strict";
 /* ================= helpers ================= */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const AR_D="٠١٢٣٤٥٦٧٨٩", arN=n=>String(n).replace(/\d/g,d=>AR_D[d]);
+const arN=n=>String(n);
 const stripHtml=h=>{const d=document.createElement("div");d.innerHTML=h;return d.textContent||"";};
 function keyOf(s,a){return s+":"+a}
 function parseKey(k){const [s,a]=k.split(":").map(Number);return[s,a]}
@@ -321,7 +321,8 @@ const ASBAB=[{"a":144,"s":2,"t":"تحويل القبلة","x":"كان النبي
 const RECITERS=[
  {id:"basit",name:"عبد الباسط عبد الصمد (ورش)",folder:"warsh_Abdul_Basit_128kbps"},
  {id:"dosary",name:"إبراهيم الدوسري (ورش)",folder:"warsh_ibrahim_aldosary_128kbps"},
- {id:"jazaery",name:"ياسين الجزائري (ورش)",folder:"warsh_yassin_al_jazaery_64kbps"}
+ {id:"jazaery",name:"ياسين الجزائري (ورش)",folder:"warsh_yassin_al_jazaery_64kbps"},
+ {id:"sowaid",name:"أيمن رشدي سويد (ورش)",folder:"Ayman_Sowaid_64kbps",base:"https://www.everyayah.com/data/"}
 ];
 const AUDIO_BASE="https://www.everyayah.com/data/warsh/";
 const WARSH_TEXT_URL="https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ara-quranwarsh.min.json";
@@ -379,14 +380,14 @@ function colorize(text){
     if(has(cl,0x653)||b==="\u0622"){
       const nl=nextLetterIdx(cls,i);
       if(cl.cps.includes(0x6E5)||cl.cps.includes(0x6E6)){spans[i]={c:"md-munf",t:"مد صلة كبرى — كحكم المنفصل"};continue;}
-      if(nl>=0&&has(cls[nl],0x651)){spans[i]={c:"md-lazim",t:"مد لازم — ٦ حركات لزوما"};continue;}
-      if(nl>=0&&HAMZA.has(cls[nl].base)){spans[i]={c:"md-mut",t:"مد واجب متصل — ٦ حركات عند ورش"};continue;}
+      if(nl>=0&&has(cls[nl],0x651)){spans[i]={c:"md-lazim",t:"مد لازم — 6 حركات لزوما"};continue;}
+      if(nl>=0&&HAMZA.has(cls[nl].base)){spans[i]={c:"md-mut",t:"مد واجب متصل — 6 حركات عند ورش"};continue;}
       // word end?
       let j=i+1,wordEnd=false,nextWordFirst=null,nextWordHamza=false;
       while(j<cls.length&&(WAQF_SKIP.has(cls[j].base)||cls[j].base==="\u06DE")){if(cls[j].base===" ")wordEnd=true;j++;}
       if(j<cls.length&&wordEnd){nextWordFirst=cls[j].base;nextWordHamza=HAMZA.has(cls[j].base)||cls[j].cps.includes(0x654)||cls[j].cps.includes(0x655);}
       else if(j>=cls.length)wordEnd=true;
-      if(wordEnd&&nextWordFirst&&nextWordHamza){spans[i]={c:"md-munf",t:"مد جائز منفصل — ٦ حركات عند ورش"};continue;}
+      if(wordEnd&&nextWordFirst&&nextWordHamza){spans[i]={c:"md-munf",t:"مد جائز منفصل — 6 حركات عند ورش"};continue;}
       spans[i]={c:"md-faded",t:"مد"};continue;
     }
     // small waw/yeh = silat sughra
@@ -397,7 +398,7 @@ function colorize(text){
       const atStart=pl<0||cls[pl+1].base===" "||(pl>=0&&false);
       const prevIsSpace=i===0||cls[i-1].base===" "||WAQF_SKIP.has(cls[i-1].base);
       const nl=nextLetterIdx(cls,i);
-      if(prevIsSpace&&nl===i+1&&MADD_L.has(cls[nl].base)&&!has(cls[nl],0x653)){spans[i]={c:"md-faded",t:"مد بدل — ٢ أو ٤ أو ٦ حركات"};spans[nl]={c:"md-faded",t:"مد بدل"};continue;}
+      if(prevIsSpace&&nl===i+1&&MADD_L.has(cls[nl].base)&&!has(cls[nl],0x653)){spans[i]={c:"md-faded",t:"مد بدل — 2 أو 4 أو 6 حركات"};spans[nl]={c:"md-faded",t:"مد بدل"};continue;}
     }
     // ghunna: noon/meem mushaddad
     if((b==="\u0646"||b==="\u0645")&&has(cl,0x651)){spans[i]={c:"ghunna",t:"غنة"};continue;}
@@ -484,9 +485,9 @@ function colorize(text){
 }
 /* Tajweed legend + Warsh rules reference */
 const TJ_LEGEND=[
- ["md-lazim","أحمر غامق","مد لازم — ٦ حركات لزوما"],
- ["md-mut","أحمر","مد واجب متصل — ٦ حركات"],
- ["md-munf","برتقالي","مد جائز منفصل / صلة كبرى — ٦ حركات"],
+ ["md-lazim","أحمر غامق","مد لازم — 6 حركات لزوما"],
+ ["md-mut","أحمر","مد واجب متصل — 6 حركات"],
+ ["md-munf","برتقالي","مد جائز منفصل / صلة كبرى — 6 حركات"],
  ["md-faded","أحمر باهت","مد بدل / صلة صغرى / لين / عوض"],
  ["ghunna","أخضر","الغنة (نون/ميم مشددة، إدغام بغنة)"],
  ["ikhfa","تركوازي","الإخفاء (الحقيقي والشفوي)"],
@@ -497,12 +498,12 @@ const TJ_LEGEND=[
 ];
 const TJ_RULES=[
  {t:"المدود برواية ورش",items:[
-  ["المد اللازم","٦ حركات لزوما: كلمي مثقل نحو ﴿ٱلضَّآلِّينَ﴾، وكلمي مخفف، وحرفي نحو ﴿الٓمٓ﴾."],
-  ["المد الواجب المتصل","٦ حركات (الإشباع) نحو ﴿ٱلسَّمَآءِ﴾."],
-  ["المد الجائز المنفصل","٦ حركات (الإشباع) نحو ﴿بِمَآ أُنزِلَ﴾."],
-  ["مد البدل","٢ أو ٤ أو ٦ حركات نحو ﴿ءَامَنَ﴾، ﴿أُوتُواْ﴾."],
-  ["مد اللين المهموز","٤ أو ٦ حركات نحو ﴿شَيْء﴾، ﴿سَوْء﴾."],
-  ["مد الصلة الكبرى","كحكم المنفصل (٦ حركات) نحو ﴿لَهُۥٓ أَجْرٌ﴾."],
+  ["المد اللازم","6 حركات لزوما: كلمي مثقل نحو ﴿ٱلضَّآلِّينَ﴾، وكلمي مخفف، وحرفي نحو ﴿الٓمٓ﴾."],
+  ["المد الواجب المتصل","6 حركات (الإشباع) نحو ﴿ٱلسَّمَآءِ﴾."],
+  ["المد الجائز المنفصل","6 حركات (الإشباع) نحو ﴿بِمَآ أُنزِلَ﴾."],
+  ["مد البدل","2 أو 4 أو 6 حركات نحو ﴿ءَامَنَ﴾، ﴿أُوتُواْ﴾."],
+  ["مد اللين المهموز","4 أو 6 حركات نحو ﴿شَيْء﴾، ﴿سَوْء﴾."],
+  ["مد الصلة الكبرى","كحكم المنفصل (6 حركات) نحو ﴿لَهُۥٓ أَجْرٌ﴾."],
   ["مد الصلة الصغرى","حركتان، وهي هاء الضمير الممدودة بواو أو ياء صغيرتين."],
   ["مد العوض","حركتان عند الوقف على المنصوب المنون نحو ﴿عَلِيمًا﴾ ← عَلِيمَا."],
  ]},
@@ -638,6 +639,7 @@ function render(){
   }
   $("#reader").scrollTop=0;
   bindAyahs();
+  if(AU.playing&&AU.queue.length)highlightPlaying(AU.queue[AU.qi]);
 }
 function kDiv(k){return null;}
 function bindAyahs(){
@@ -789,7 +791,7 @@ async function jalalaynText(s,a){
 const AU={queue:[],qi:0,rep:0,playing:false,waitTimer:null};
 const audio=()=>$("#audio");
 const pad3=n=>String(n).padStart(3,"0");
-const audioURL=(key,rec)=>{const[s,a]=parseKey(key);return AUDIO_BASE+rec.folder+"/"+pad3(s)+pad3(a)+".mp3";};
+const audioURL=(key,rec)=>{const[s,a]=parseKey(key);return (rec.base||AUDIO_BASE)+rec.folder+"/"+pad3(s)+pad3(a)+".mp3";};
 const curReciter=()=>RECITERS.find(r=>r.id===$("#reciterSel").value)||RECITERS[0];
 function unitContaining(unit,key){
   const idx=keyToIdx(key);
@@ -934,7 +936,7 @@ $("#sidebar").addEventListener("click",e=>{
   $("#modalClose").onclick=closeModal;
   $("#mClose2").onclick=closeModal;
   $("#modalWrap").addEventListener("click",e=>{if(e.target.id==="modalWrap")closeModal();});
-  if(window.innerWidth<760)$("#app").classList.add("sb-closed");
+  if(window.innerWidth<760)$("#app").classList.add("sb-closed");else $("#app").classList.remove("sb-closed");
 }
 /* ================= ASMA AL-HUSNA ================= */
 function renderAsmaList(filter){
