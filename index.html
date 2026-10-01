@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Koran — القرآن الكريم برواية ورش عن نافع</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#093f31">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Koran">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -660,18 +667,26 @@ function surahNavHTML(s){
 function gotoSurah(s){state.mode="surah";state.ref=s;render();}
 function gotoUnit(unit,n){state.mode=unit;state.ref=n;render();}
 let flipping=false;
-/* book-like page turn: the old page pivots around the spine edge (RTL: next->right edge, prev->left edge) */
+/* book-like page turn: the old page pivots around the spine edge (RTL: next->right edge, prev->left edge).
+   The turning layer always covers the reader's visible viewport and shows the slice of the old
+   page the user is actually looking at (the buttons sit at the bottom of a scrolled page, so
+   cloning the full page rect would put the animation off-screen). */
 function flipPage(d){
   if(state.mode!=="page"||flipping)return;
   const n=state.ref+d; if(n<1||n>604)return;
   if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){gotoUnit("page",n);return;}
   flipping=true;
-  const M=$("#mushaf"),mr=M.getBoundingClientRect();
+  const R=$("#reader"),M=$("#mushaf");
+  const rr=R.getBoundingClientRect(),mr=M.getBoundingClientRect();
   const ov=document.createElement("div");
-  ov.className="flip-ov"; ov.innerHTML=M.innerHTML;
-  ov.style.top=mr.top+"px"; ov.style.left=mr.left+"px";
-  ov.style.width=mr.width+"px"; ov.style.height=mr.height+"px";
-  ov.style.transformOrigin=d>0?"right center":"left center";
+  ov.className="flip-ov";
+  ov.style.top=rr.top+"px"; ov.style.left=rr.left+"px";
+  ov.style.width=rr.width+"px"; ov.style.height=rr.height+"px";
+  const inner=M.cloneNode(true); inner.removeAttribute("id");
+  inner.style.margin="0"; inner.style.maxWidth="none"; inner.style.width=mr.width+"px";
+  inner.style.transform="translate("+(mr.left-rr.left)+"px,"+(mr.top-rr.top)+"px)";
+  ov.appendChild(inner);
+  ov.style.transformOrigin=((d>0?mr.right:mr.left)-rr.left)+"px center";
   document.body.appendChild(ov);
   gotoUnit("page",n); /* new page renders beneath the turning page */
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -1020,6 +1035,7 @@ $("#sidebar").addEventListener("click",e=>{
 }
 document.addEventListener("DOMContentLoaded",async()=>{
   wireUI();buildSidebar();wireAudio();wireAsma();wireSwipe();
+  if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
   await loadText();
   render();
 });
