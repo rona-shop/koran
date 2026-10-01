@@ -108,6 +108,8 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
 /* ===== audio player ===== */
 #player{position:fixed;bottom:0;right:0;left:0;background:linear-gradient(180deg,#fffdf6,#f8f1de);border-top:2px solid var(--gold);padding:10px 14px;z-index:60;display:none;box-shadow:0 -4px 18px rgba(0,0,0,.12)}
 #player.open{display:block}
+#miniP{position:fixed;bottom:14px;inset-inline-start:14px;z-index:61;display:none;align-items:center;gap:8px;background:var(--green);color:#fff;border:none;border-radius:999px;padding:10px 16px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#miniP.show{display:flex}
 .prow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:1000px;margin:0 auto}
 .pbtn{width:44px;height:44px;border-radius:50%;border:none;background:var(--green);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
 .pbtn.small{width:36px;height:36px;font-size:14px;background:var(--paper-d);color:var(--green-d);border:1px solid var(--line)}
@@ -270,10 +272,12 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
     <button class="ptoggle on" id="tListen">👂 استمع وكرر</button>
     <button class="ptoggle" id="tContinue">⏭ أكمل التلاوة</button>
     <span id="pinfo"></span>
-    <button class="pbtn small" id="pClose" title="إغلاق">✕</button>
+    <button class="pbtn small" id="pStop" title="إيقاف نهائي">⏹</button>
+    <button class="pbtn small" id="pClose" title="تصغير الشريط (يستمر الصوت)">✕</button>
   </div>
   <audio id="audio" preload="auto"></audio>
 </div>
+<button id="miniP" title="فتح المشغّل"><span id="miniI">⏸</span><span id="miniT"></span></button>
 
 <script>
 "use strict";
@@ -818,7 +822,7 @@ function playCurrent(){
   const key=AU.queue[AU.qi];if(!key){stopAudio();return;}
   const a=audio();a.src=audioURL(key,curReciter());a.play().catch(()=>nextAyah());
   AU.playing=true;$("#pPlay").textContent="⏸";
-  highlightPlaying(key);updatePinfo();
+  highlightPlaying(key);updatePinfo();syncMini();
 }
 function highlightPlaying(key){
   $$("#mushaf .ayah.playing").forEach(e=>e.classList.remove("playing"));
@@ -847,11 +851,17 @@ function nextAyah(){
   playCurrent();
 }
 function prevAyah(){if(AU.qi>0){AU.qi--;AU.rep=0;$("#repeatMsg").textContent="";playCurrent();}}
-function stopAudio(){AU.playing=false;clearTimeout(AU.waitTimer);audio().pause();$("#pPlay").textContent="▶";$("#repeatMsg").textContent="";$$("#mushaf .ayah.playing").forEach(e=>e.classList.remove("playing"));}
+function stopAudio(){AU.playing=false;clearTimeout(AU.waitTimer);audio().pause();$("#pPlay").textContent="▶";$("#repeatMsg").textContent="";$$("#mushaf .ayah.playing").forEach(e=>e.classList.remove("playing"));syncMini();}
+function syncMini(){
+  const show=AU.queue.length>0&&AU.qi<AU.queue.length&&!$("#player").classList.contains("open");
+  $("#miniP").classList.toggle("show",show);
+  if(show){$("#miniI").textContent=AU.playing?"⏸":"▶";const k=AU.queue[AU.qi];if(k){const[s,a]=parseKey(k);$("#miniT").textContent=SURAH_NAME(s)+" "+arN(a);}}
+}
 function togglePlay(){
   if(!AU.queue.length)return;
   if(AU.playing){audio().pause();AU.playing=false;$("#pPlay").textContent="▶";clearTimeout(AU.waitTimer);$("#repeatMsg").textContent="";}
   else{audio().play().catch(()=>{});AU.playing=true;$("#pPlay").textContent="⏸";}
+  syncMini();
 }
 function onAudioEnded(){
   const repN=+$("#repSel").value;
@@ -870,7 +880,9 @@ function wireAudio(){
   $("#pPlay").onclick=togglePlay;
   $("#pNext").onclick=()=>{clearTimeout(AU.waitTimer);$("#repeatMsg").textContent="";nextAyah();};
   $("#pPrev").onclick=prevAyah;
-  $("#pClose").onclick=()=>{stopAudio();$("#player").classList.remove("open");AU.queue=[];};
+  $("#pClose").onclick=()=>{$("#player").classList.remove("open");syncMini();};
+  $("#pStop").onclick=()=>{stopAudio();$("#player").classList.remove("open");AU.queue=[];};
+  $("#miniP").onclick=()=>{$("#player").classList.add("open");syncMini();};
   $("#scopeSel").onchange=()=>{if(AU.queue.length){const k=AU.queue[AU.qi];startAudio(k);}};
   $("#repSel").onchange=updatePinfo;
   $("#tListen").onclick=e=>e.target.classList.toggle("on");
