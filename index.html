@@ -51,7 +51,8 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
 /* ===== main reader ===== */
 #main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--paper)}
 #crumb{padding:10px 18px 4px;font-size:13px;color:var(--muted);font-weight:700}
-#reader{flex:1;overflow-y:auto;padding:10px 26px 140px;scroll-behavior:smooth}
+#reader{flex:1;overflow-y:auto;padding:10px 26px 140px;scroll-behavior:smooth;position:relative}
+.flip-ov{position:fixed;z-index:40;pointer-events:none;overflow:hidden;will-change:transform;box-shadow:-24px 18px 44px rgba(60,40,10,.28);border-radius:6px}
 .mushaf{max-width:920px;margin:0 auto;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:34px 30px;box-shadow:0 4px 24px rgba(93,64,20,.08);position:relative}
 .surah-head{text-align:center;margin-bottom:18px}
 .surah-head .frame{border:2px solid var(--gold);border-radius:14px;padding:12px 20px;display:inline-block;background:linear-gradient(180deg,#fffdf6,#faf3df)}
@@ -651,13 +652,46 @@ function bindAyahs(){
     el.onclick=()=>openAyah(el.dataset.k);
   });
   $$("#mushaf [data-nav]").forEach(b=>{if(!b.disabled)b.onclick=()=>gotoSurah(state.ref+ +b.dataset.nav);});
-  $$("#mushaf [data-pg]").forEach(b=>{if(!b.disabled)b.onclick=()=>gotoUnit("page",state.ref+ +b.dataset.pg);});
+  $$("#mushaf [data-pg]").forEach(b=>{if(!b.disabled)b.onclick=()=>flipPage(+b.dataset.pg);});
 }
 function surahNavHTML(s){
   return `<div class="surnav"><button class="snbtn" data-nav="-1"${s<=1?" disabled":""}>السورة السابقة ▶</button><button class="snbtn" data-nav="1"${s>=114?" disabled":""}>◀ السورة التالية</button></div>`;
 }
 function gotoSurah(s){state.mode="surah";state.ref=s;render();}
 function gotoUnit(unit,n){state.mode=unit;state.ref=n;render();}
+let flipping=false;
+/* book-like page turn: the old page pivots around the spine edge (RTL: next->right edge, prev->left edge) */
+function flipPage(d){
+  if(state.mode!=="page"||flipping)return;
+  const n=state.ref+d; if(n<1||n>604)return;
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){gotoUnit("page",n);return;}
+  flipping=true;
+  const M=$("#mushaf"),mr=M.getBoundingClientRect();
+  const ov=document.createElement("div");
+  ov.className="flip-ov"; ov.innerHTML=M.innerHTML;
+  ov.style.top=mr.top+"px"; ov.style.left=mr.left+"px";
+  ov.style.width=mr.width+"px"; ov.style.height=mr.height+"px";
+  ov.style.transformOrigin=d>0?"right center":"left center";
+  document.body.appendChild(ov);
+  gotoUnit("page",n); /* new page renders beneath the turning page */
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    ov.style.transition="transform .55s cubic-bezier(.45,.05,.3,1),opacity .55s ease";
+    ov.style.transform="perspective(1600px) rotateY("+(d>0?-172:172)+"deg)";
+    ov.style.opacity=".35";
+  }));
+  setTimeout(()=>{ov.remove();flipping=false;},620);
+}
+/* swipe in page mode: swipe left -> next page, swipe right -> previous (RTL reading) */
+let _tx=0,_ty=0;
+function wireSwipe(){
+  const r=$("#reader"); if(!r||r.dataset.sw==="1")return; r.dataset.sw="1";
+  r.addEventListener("touchstart",e=>{_tx=e.touches[0].clientX;_ty=e.touches[0].clientY;},{passive:true});
+  r.addEventListener("touchend",e=>{
+    if(state.mode!=="page"||flipping)return;
+    const dx=e.changedTouches[0].clientX-_tx,dy=e.changedTouches[0].clientY-_ty;
+    if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.6)flipPage(dx<0?1:-1);
+  },{passive:true});
+}
 
 /* ---------- sidebar lists ---------- */
 function buildSidebar(){
@@ -929,27 +963,6 @@ function dhkReset(btn){
   const b=btn.parentElement.querySelector(".count-b");
   b.dataset.left=b.dataset.n;b.textContent="× "+arN(+b.dataset.n);b.classList.remove("done");
 }
-/* ================= INIT ================= */
-function wireUI(){
-  $("#menuBtn").onclick=()=>$("#app").classList.toggle("sb-closed");
-$("#sbClose").onclick=()=>$("#app").classList.add("sb-closed");
-$("#sidebar").addEventListener("click",e=>{
-  if(window.innerWidth>=760)return;
-  if(e.target.closest("#pageGo")){$("#app").classList.add("sb-closed");return;}
-  const it=e.target.closest(".sitem");
-  if(!it)return;
-  if(it.closest("#p-adhkar")||it.closest("#p-asma"))return;
-  $("#app").classList.add("sb-closed");
-});
-  $("#zoomIn").onclick=()=>{state.fontSize=Math.min(46,state.fontSize+2);render();};
-  $("#zoomOut").onclick=()=>{state.fontSize=Math.max(20,state.fontSize-2);render();};
-  $("#tjToggle").onclick=e=>{state.tajweed=!state.tajweed;e.target.classList.toggle("on",state.tajweed);render();};
-  $("#gsearch").addEventListener("keydown",e=>{if(e.key==="Enter")doSearch(e.target.value);});
-  $("#modalClose").onclick=closeModal;
-  $("#mClose2").onclick=closeModal;
-  $("#modalWrap").addEventListener("click",e=>{if(e.target.id==="modalWrap")closeModal();});
-  if(window.innerWidth<760)$("#app").classList.add("sb-closed");else $("#app").classList.remove("sb-closed");
-}
 /* ================= ASMA AL-HUSNA ================= */
 function renderAsmaList(filter){
   const box=$("#asmaList");
@@ -984,8 +997,29 @@ function wireAsma(){
   $("#asmaFilter").oninput=e=>renderAsmaList(e.target.value);
   renderAsmaList("");
 }
+/* ================= INIT ================= */
+function wireUI(){
+  $("#menuBtn").onclick=()=>$("#app").classList.toggle("sb-closed");
+$("#sbClose").onclick=()=>$("#app").classList.add("sb-closed");
+$("#sidebar").addEventListener("click",e=>{
+  if(window.innerWidth>=760)return;
+  if(e.target.closest("#pageGo")){$("#app").classList.add("sb-closed");return;}
+  const it=e.target.closest(".sitem");
+  if(!it)return;
+  if(it.closest("#p-adhkar")||it.closest("#p-asma"))return;
+  $("#app").classList.add("sb-closed");
+});
+  $("#zoomIn").onclick=()=>{state.fontSize=Math.min(46,state.fontSize+2);render();};
+  $("#zoomOut").onclick=()=>{state.fontSize=Math.max(20,state.fontSize-2);render();};
+  $("#tjToggle").onclick=e=>{state.tajweed=!state.tajweed;e.target.classList.toggle("on",state.tajweed);render();};
+  $("#gsearch").addEventListener("keydown",e=>{if(e.key==="Enter")doSearch(e.target.value);});
+  $("#modalClose").onclick=closeModal;
+  $("#mClose2").onclick=closeModal;
+  $("#modalWrap").addEventListener("click",e=>{if(e.target.id==="modalWrap")closeModal();});
+  if(window.innerWidth<760)$("#app").classList.add("sb-closed");else $("#app").classList.remove("sb-closed");
+}
 document.addEventListener("DOMContentLoaded",async()=>{
-  wireUI();buildSidebar();wireAudio();wireAsma();
+  wireUI();buildSidebar();wireAudio();wireAsma();wireSwipe();
   await loadText();
   render();
 });
