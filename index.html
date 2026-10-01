@@ -123,6 +123,7 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
 .rule:first-of-type{border-top:none}
 .rule .rn{font-weight:800;color:var(--green-d);white-space:nowrap}
 .swatch{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-inline-end:6px}
+.asma-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
 /* ===== loader / misc ===== */
 #loader{position:fixed;inset:0;background:var(--green-d);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:14px}
 #loader .t{font-size:26px;font-weight:800;color:var(--gold-l)}
@@ -135,15 +136,53 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
 .sr-item .k{font-size:12px;color:var(--muted);font-weight:700}
 .sr-item .tx{font-family:'Amiri Quran',serif;font-size:19px;line-height:2}
 @media(max-width:700px){
-  .qtext{font-size:24px}
-  #reader{padding:8px 10px 150px}
-  .mushaf{padding:20px 14px}
+  /* ===== phone layout: bigger text, bigger touch targets ===== */
+  .qtext{font-size:24px;line-height:2.4}
+  #reader{padding:8px 8px 175px}
+  .mushaf{padding:20px 12px;border-radius:14px}
+  .brand{font-size:17px}
   .brand small{display:none}
+  #menuBtn{padding:10px 15px;font-size:20px;background:var(--gold);border-color:var(--gold);color:#3a2f05;font-weight:800}
+  .searchbox{order:3;flex-basis:100%;max-width:none;margin-top:6px}
+  .searchbox input{padding:11px 16px;font-size:15px}
+  .hbtn{padding:10px 15px;font-size:15px;min-height:46px;min-width:46px}
+  #crumb{padding:8px 12px 2px;font-size:14px}
+  /* sidebar: roomy tappable rows */
+  .stab{font-size:14px;padding:13px 4px}
+  .sitem{padding:14px 12px}
+  .sitem .nm{font-size:16px}
+  .sitem .num{min-width:38px;height:38px;font-size:14px}
+  .sfilter{padding:12px;font-size:15px}
+  /* ayah numbers easy to tap */
+  .ayah-num{min-width:40px;height:40px;font-size:16px}
+  /* ===== audio player: big visible controls ===== */
+  #player{padding:12px 10px 14px}
+  .prow{gap:10px;justify-content:center}
+  .pbtn{width:58px;height:58px;font-size:23px;box-shadow:0 3px 10px rgba(13,92,70,.35)}
+  .pbtn.small{width:48px;height:48px;font-size:18px;box-shadow:none}
+  .psel{font-size:14.5px;padding:12px 10px;flex:1 1 28%;min-height:48px}
+  .ptoggle{font-size:15px;font-weight:800;padding:14px 12px;flex:1 1 42%;min-height:52px;border-width:2px}
+  #pinfo{flex-basis:100%;font-size:14px}
+  #repeatMsg{font-size:14px}
+  /* ===== ayah modal: big tabs & buttons ===== */
+  .mtab{font-size:15px;padding:12px 18px}
+  .mbtn{padding:16px;font-size:17px;border-radius:14px}
+  #modalAyah{font-size:25px}
+  #modalBody{font-size:17.5px}
+  #modalHead{font-size:16px}
+  /* adhkar counters */
+  .dhk .txt{font-size:17px}
+  .count-b{padding:11px 26px;font-size:16px}
+  .reset-b{padding:10px 18px;font-size:13.5px}
+  /* asma grid: bigger cards on phone */
+  .asma-grid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))!important;gap:10px!important}
+  .sajda{font-size:.75em;padding:2px 10px}
+  .divmark{font-size:13.5px;padding:5px 14px}
 }
 </style>
 </head>
 <body>
-<div id="loader"><div class="t">مصحف ورش</div><div id="lbar"><i></i></div><div id="lmsg">جاري التحميل...</div></div>
+<div id="loader"><div class="t">۞ Koran</div><div id="lbar"><i></i></div><div id="lmsg">جاري التحميل...</div></div>
 
 <header>
   <button id="menuBtn" title="القائمة">☰</button>
@@ -823,7 +862,7 @@ function renderAsmaList(filter){
   const q=(filter||"").trim();
   const list=ASMA.map((a,i)=>({...a,i})).filter(a=>!q||a.n.includes(q));
   box.innerHTML=`<div class="src-note" style="margin-bottom:10px">«إن لله تسعة وتسعين اسمًا، مائة إلا واحدًا، من أحصاها دخل الجنة» — متفق عليه</div>`
-   +`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px">`
+   +`<div class="asma-grid">`
    +list.map(a=>`<div class="sitem" style="flex-direction:column;gap:2px;text-align:center;padding:12px 6px" data-i="${a.i}">
       <span style="font-family:'Amiri Quran',serif;font-size:21px;color:var(--green-d)">${a.n}</span>
       <span class="sub">${arN(a.i+1)}</span></div>`).join("")+`</div>`;
