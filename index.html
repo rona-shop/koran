@@ -34,6 +34,7 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
 /* ===== sidebar ===== */
 #sidebar{width:320px;max-width:86vw;background:var(--card);border-inline-end:1px solid var(--line);display:flex;flex-direction:column;transition:margin .25s;z-index:40}
 #app.sb-closed #sidebar{margin-inline-end:-321px}
+#sbClose{display:none}
 .stabs{display:flex;flex-wrap:wrap;gap:4px;padding:10px 10px 6px;border-bottom:1px solid var(--line)}
 .stab{flex:1 1 28%;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:8px 4px;font-family:inherit;font-size:13px;font-weight:700;color:var(--green-d);cursor:pointer}
 .stab.on{background:var(--green);color:#fff;border-color:var(--green)}
@@ -178,6 +179,10 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
   .asma-grid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))!important;gap:10px!important}
   .sajda{font-size:.75em;padding:2px 10px}
   .divmark{font-size:13.5px;padding:5px 14px}
+  /* sidebar as overlay drawer on phone: never squeezes the surah */
+  #sidebar{position:fixed;top:0;bottom:0;inset-inline-start:0;z-index:90;box-shadow:0 0 30px rgba(0,0,0,.3);transition:transform .28s ease}
+  #app.sb-closed #sidebar{margin-inline-end:0;transform:translateX(105%)}
+  #sbClose{display:block;width:calc(100% - 20px);margin:10px 10px 0;padding:14px;border:none;border-radius:12px;background:var(--green);color:#fff;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer}
 }
 </style>
 </head>
@@ -197,6 +202,7 @@ header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff
 
 <div id="app">
   <aside id="sidebar">
+    <button id="sbClose">✕ إغلاق القائمة</button>
     <div class="stabs">
       <button class="stab on" data-t="surah">السور</button>
       <button class="stab" data-t="juz">الأجزاء</button>
@@ -847,6 +853,15 @@ function dhkReset(btn){
 /* ================= INIT ================= */
 function wireUI(){
   $("#menuBtn").onclick=()=>$("#app").classList.toggle("sb-closed");
+$("#sbClose").onclick=()=>$("#app").classList.add("sb-closed");
+$("#sidebar").addEventListener("click",e=>{
+  if(window.innerWidth>=760)return;
+  if(e.target.closest("#pageGo")){$("#app").classList.add("sb-closed");return;}
+  const it=e.target.closest(".sitem");
+  if(!it)return;
+  if(it.closest("#p-adhkar")||it.closest("#p-asma"))return;
+  $("#app").classList.add("sb-closed");
+});
   $("#zoomIn").onclick=()=>{state.fontSize=Math.min(46,state.fontSize+2);render();};
   $("#zoomOut").onclick=()=>{state.fontSize=Math.max(20,state.fontSize-2);render();};
   $("#tjToggle").onclick=e=>{state.tajweed=!state.tajweed;e.target.classList.toggle("on",state.tajweed);render();};
